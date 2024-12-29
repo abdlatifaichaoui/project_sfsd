@@ -5,7 +5,7 @@
 #define MAX_FILES 10
 #define MAX_SIZE 10
 
-// Structures
+
 typedef struct {
     int id;
     char name[50];
