@@ -2,191 +2,192 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_FICHIERS 10
-#define TAILLE_MAX 10
+#define MAX_FILES 10
+#define MAX_SIZE 10
 
 // Structures
 typedef struct {
     int id;
-    char nom[50];
-} Enregistrement;
+    char name[50];
+} Record;
 
-// Organisation contiguë
+// Contiguous organization
 typedef struct {
-    Enregistrement enregistrements[TAILLE_MAX];
-    int taille_actuelle;
-} FichierContigue;
+    Record records[MAX_SIZE];
+    int current_size;
+} ContiguousFile;
 
-// Organisation chaînée
-typedef struct Bloc {
-    Enregistrement enregistrement;
-    struct Bloc *suivant;
-} Bloc;
+// Chained organization
+typedef struct Node {
+    Record record;
+    struct Node *next;
+} Node;
 
 typedef struct {
-    Bloc *tete;
-} FichierChaine;
+    Node *head;
+} ChainedFile;
 
-// Mémoire secondaire
+// Secondary memory
 typedef struct {
-    FichierContigue fichiers_contigus[MAX_FICHIERS];
-    FichierChaine fichiers_chaînes[MAX_FICHIERS];
-    int nombre_fichiers;
-} MemoireSecondaire;
+    ContiguousFile contiguous_files[MAX_FILES];
+    ChainedFile chained_files[MAX_FILES];
+    int file_count;
+} SecondaryMemory;
 
-// Fonctions pour organisation contiguë
-void initialiser_fichier_contigu(FichierContigue *fichier) {
-    fichier->taille_actuelle = 0;
+// Functions for contiguous organization
+void initialize_contiguous_file(ContiguousFile *file) {
+    file->current_size = 0;
 }
 
-int ajouter_enregistrement_contigu(FichierContigue *fichier, int id, const char *nom) {
-    if (fichier->taille_actuelle >= TAILLE_MAX) {
-        printf("Erreur : Espace insuffisant dans le fichier contigu.\n");
+int add_record_contiguous(ContiguousFile *file, int id, const char *name) {
+    if (file->current_size >= MAX_SIZE) {
+        printf("Error: Insufficient space in the contiguous file.\n");
         return 0;
     }
-    fichier->enregistrements[fichier->taille_actuelle].id = id;
-    strcpy(fichier->enregistrements[fichier->taille_actuelle].nom, nom);
-    fichier->taille_actuelle++;
+    file->records[file->current_size].id = id;
+    strcpy(file->records[file->current_size].name, name);
+    file->current_size++;
     return 1;
 }
 
-void afficher_fichier_contigu(const FichierContigue *fichier) {
-    if (fichier->taille_actuelle == 0) {
-        printf("Le fichier contigu est vide.\n");
+void display_contiguous_file(const ContiguousFile *file) {
+    if (file->current_size == 0) {
+        printf("The contiguous file is empty.\n");
     } else {
-        for (int i = 0; i < fichier->taille_actuelle; i++) {
-            printf("Enregistrement %d: ID=%d, Nom=%s\n", i + 1, fichier->enregistrements[i].id, fichier->enregistrements[i].nom);
+        for (int i = 0; i < file->current_size; i++) {
+            printf("Record %d: ID=%d, Name=%s\n", i + 1, file->records[i].id, file->records[i].name);
         }
     }
 }
 
-// Fonctions pour organisation chaînée
-void initialiser_fichier_chaine(FichierChaine *fichier) {
-    fichier->tete = NULL;
+// Functions for chained organization
+void initialize_chained_file(ChainedFile *file) {
+    file->head = NULL;
 }
 
-void ajouter_enregistrement_chaine(FichierChaine *fichier, int id, const char *nom) {
-    Bloc *nouveau_bloc = (Bloc *)malloc(sizeof(Bloc));
-    if (nouveau_bloc == NULL) {
-        printf("Erreur : Espace mémoire insuffisant.\n");
+void add_record_chained(ChainedFile *file, int id, const char *name) {
+    Node *new_node = (Node *)malloc(sizeof(Node));
+    if (new_node == NULL) {
+        printf("Error: Insufficient memory.\n");
         return;
     }
-    nouveau_bloc->enregistrement.id = id;
-    strcpy(nouveau_bloc->enregistrement.nom, nom);
-    nouveau_bloc->suivant = NULL;
+    new_node->record.id = id;
+    strcpy(new_node->record.name, name);
+    new_node->next = NULL;
 
-    if (fichier->tete == NULL) {
-        fichier->tete = nouveau_bloc;
+    if (file->head == NULL) {
+        file->head = new_node;
     } else {
-        Bloc *courant = fichier->tete;
-        while (courant->suivant != NULL) {
-            courant = courant->suivant;
+        Node *current = file->head;
+        while (current->next != NULL) {
+            current = current->next;
         }
-        courant->suivant = nouveau_bloc;
+        current->next = new_node;
     }
 }
 
-void afficher_fichier_chaine(const FichierChaine *fichier) {
-    if (fichier->tete == NULL) {
-        printf("Le fichier chaîné est vide.\n");
+void display_chained_file(const ChainedFile *file) {
+    if (file->head == NULL) {
+        printf("The chained file is empty.\n");
     } else {
-        Bloc *courant = fichier->tete;
-        while (courant != NULL) {
-            printf("Enregistrement: ID=%d, Nom=%s\n", courant->enregistrement.id, courant->enregistrement.nom);
-            courant = courant->suivant;
+        Node *current = file->head;
+        while (current != NULL) {
+            printf("Record: ID=%d, Name=%s\n", current->record.id, current->record.name);
+            current = current->next;
         }
     }
 }
 
-// Création des fichiers
-void creer_fichier(MemoireSecondaire *memoire) {
-    if (memoire->nombre_fichiers >= MAX_FICHIERS) {
-        printf("Erreur : Nombre maximal de fichiers atteint.\n");
+// File creation
+void create_file(SecondaryMemory *memory) {
+    if (memory->file_count >= MAX_FILES) {
+        printf("Error: Maximum number of files reached.\n");
         return;
     }
 
     char type[10];
-    printf("Type d'organisation (contigue/chainee) : ");
+    printf("Organization type (contiguous/chained): ");
     scanf("%s", type);
 
-    if (strcmp(type, "contigue") == 0) {
-        initialiser_fichier_contigu(&memoire->fichiers_contigus[memoire->nombre_fichiers]);
-        printf("Fichier contigu créé avec succès.\n");
-    } else if (strcmp(type, "chainee") == 0) {
-        initialiser_fichier_chaine(&memoire->fichiers_chaînes[memoire->nombre_fichiers]);
-        printf("Fichier chaîné créé avec succès.\n");
+    if (strcmp(type, "contiguous") == 0) {
+        initialize_contiguous_file(&memory->contiguous_files[memory->file_count]);
+        printf("Contiguous file created successfully.\n");
+    } else if (strcmp(type, "chained") == 0) {
+        initialize_chained_file(&memory->chained_files[memory->file_count]);
+        printf("Chained file created successfully.\n");
     } else {
-        printf("Type d'organisation invalide.\n");
+        printf("Invalid organization type.\n");
         return;
     }
 
-    memoire->nombre_fichiers++;
+    memory->file_count++;
 }
 
-// Insertion d'enregistrements
-void inserer_enregistrement(MemoireSecondaire *memoire, int fichier_index, const char *type, int id, const char *nom) {
-    if (fichier_index >= memoire->nombre_fichiers) {
-        printf("Erreur : Index de fichier invalide.\n");
+// Record insertion
+void insert_record(SecondaryMemory *memory, int file_index, const char *type, int id, const char *name) {
+    if (file_index >= memory->file_count) {
+        printf("Error: Invalid file index.\n");
         return;
     }
 
-    if (strcmp(type, "contigue") == 0) {
-        ajouter_enregistrement_contigu(&memoire->fichiers_contigus[fichier_index], id, nom);
-    } else if (strcmp(type, "chainee") == 0) {
-        ajouter_enregistrement_chaine(&memoire->fichiers_chaînes[fichier_index], id, nom);
+    if (strcmp(type, "contiguous") == 0) {
+        add_record_contiguous(&memory->contiguous_files[file_index], id, name);
+    } else if (strcmp(type, "chained") == 0) {
+        add_record_chained(&memory->chained_files[file_index], id, name);
     } else {
-        printf("Type d'organisation invalide.\n");
+        printf("Invalid organization type.\n");
     }
 }
 
-// Fonction principale
+// Main function
 int main() {
-    MemoireSecondaire memoire = {0};
+    SecondaryMemory memory = {0};
 
-    int choix;
+    int choice;
     do {
         printf("\n--- Menu ---\n");
-        printf("1. Créer un fichier\n");
-        printf("2. Insérer un enregistrement\n");
-        printf("3. Afficher les fichiers\n");
-        printf("4. Quitter\n");
-        printf("Votre choix : ");
-        scanf("%d", &choix);
+        printf("1. Create a file\n");
+        printf("2. Insert a record\n");
+        printf("3. Display files\n");
+        printf("4. Exit\n");
+        printf("Your choice: ");
+        scanf("%d", &choice);
 
-        switch (choix) {
+        switch (choice) {
             case 1:
-                creer_fichier(&memoire);
+                create_file(&memory);
                 break;
             case 2: {
-                int fichier_index, id;
-                char type[10], nom[50];
-                printf("Index du fichier : ");
-                scanf("%d", &fichier_index);
-                printf("Type d'organisation (contigue/chainee) : ");
+                int file_index, id;
+                char type[10], name[50];
+                printf("File index: ");
+                scanf("%d", &file_index);
+                printf("Organization type (contiguous/chained): ");
                 scanf("%s", type);
-                printf("ID : ");
+                printf("ID: ");
                 scanf("%d", &id);
-                printf("Nom : ");
-                scanf("%s", nom);
-                inserer_enregistrement(&memoire, fichier_index, type, id, nom);
+                printf("Name: ");
+                scanf("%s", name);
+                insert_record(&memory, file_index, type, id, name);
                 break;
             }
             case 3: {
-                for (int i = 0; i < memoire.nombre_fichiers; i++) {
-                    printf("\nFichier %d :\n", i);
-                    printf("Organisation contiguë :\n");
-                    afficher_fichier_contigu(&memoire.fichiers_contigus[i]);
-                    printf("Organisation chaînée :\n");
-                    afficher_fichier_chaine(&memoire.fichiers_chaînes[i]);
+                for (int i = 0; i < memory.file_count; i++) {
+                    printf("\nFile %d:\n", i);
+                    printf("Contiguous organization:\n");
+                    display_contiguous_file(&memory.contiguous_files[i]);
+                    printf("Chained organization:\n");
+                    display_chained_file(&memory.chained_files[i]);
                 }
                 break;
             }
             case 4:
-                printf("Au revoir !\n");
+                printf("Goodbye!\n");
                 break;
             default:
-                printf("Choix invalide.\n");
+                printf("Invalid choice.\n");
         }
-    } while (choix != 4);
+    } while (choice != 4);
 
     return 0;
+}
