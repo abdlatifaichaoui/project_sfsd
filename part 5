@@ -18,17 +18,17 @@ typedef  struct Bloc{
 	int suivant;
 } Bloc;
 
-//Lire les metadonnes
+//Read metadata from a file
 void lireMetaDonnees(FILE*f, MetaDonnees*meta){
 	rewind(f);
 	fread(meta,sizeof(MetaDonnees),1,f);
 }
-//mettre a jour les metadonnees
+//Update metadata in a file
 void majMetaDonnees(FILE*f,MetaDonnees*meta){
 	rewind(f);
 	fwrite(meta,sizeof(MetaDonnees),1,f);
 }
-//creation d'un fichier de metadonnees
+//Create metadata file
 void creeMetaDonnees(FILE*f,const char *nomFichier,int tailleFichier,int nbBlocs,int adressePremierBloc){
 	MetaDonnees meta;
 	strcpy(meta.nomFichier, nomFichier);
@@ -40,14 +40,14 @@ void creeMetaDonnees(FILE*f,const char *nomFichier,int tailleFichier,int nbBlocs
 	majMetaDonnees(f,&meta);
 	}
 	
-	//affichage des metadonnees
+	//Display Metadata
 	void afficherMetaDonnees(const MetaDonnees*meta){
 	
 	
-	printf("Nom du fichier :%s\n",meta ->nomFichier);
-	printf("Taille totale du fichier:%d octets\n",meta->tailleFichier);
-	printf("Nombre de blocs utilisee:%d\n",meta->nbEnregistrements);
-	printf("Adresse du premier bloc :%d\n",meta->adressePremierBloc);}
+	printf("File name :%s\n",meta ->nomFichier);
+	printf("Total size file :%d octets\n",meta->tailleFichier);
+	printf("Number of used Blocs :%d\n",meta->nbEnregistrements);
+	printf("Adress of the first Bloc :%d\n",meta->adressePremierBloc);}
 	
 	void ajouterEnregistrement(FILE*fMeta,FILE*fBlocs,const char *donnee,int tailleDonnee){
 		MetaDonnees meta;
@@ -85,15 +85,15 @@ void creeMetaDonnees(FILE*f,const char *nomFichier,int tailleFichier,int nbBlocs
 			FILE*fMeta=fopen("MetaDonnees.bin","wb+");
 			FILE*fBlocs=fopen("Bloc.bin","wb+");
 			if(!fMeta|| !fBlocs){
-				printf("erreur");
+				printf("Error");
 				return 1;
 			}
-			creeMetaDonnees(fMeta,"FichierDonnees.bin",1024,1,0);
+			creeMetaDonnees(fMeta,"DataFile.bin",1024,1,0);
 			MetaDonnees meta;
 			lireMetaDonnees(fMeta,&meta);
 			afficherMetaDonnees(&meta);
-			ajouterEnregistrement(fMeta,fBlocs,"Produit A",9);
-			ajouterEnregistrement(fMeta,fBlocs,"Produit B",9);
+			ajouterEnregistrement(fMeta,fBlocs,"Product A",9);
+			ajouterEnregistrement(fMeta,fBlocs,"Product B",9);
 			lireMetaDonnees(fMeta,&meta);
 			afficherMetaDonnees(&meta);
 			fclose(fMeta);
