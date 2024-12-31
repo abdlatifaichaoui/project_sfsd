@@ -2,203 +2,204 @@
 #include <stdling.h>
 #include <string.h>
 
-#define MAX_FICHIERS 10
-#define TAILLE_MAX 10
+#define MAX_FFILE 10
+#define MAX_SIZE 10
 
-//representer un enregistrement:
-typedef struct{
+// Structure to represent a record:
+typedef struct {
     int id;
-    char nom[50];
-}Enregistrement ;
+    char name[50];
+} Record;
 
-//  BLOC:
-//Pour l'organisation chainee :
-typedef struct Bloc{
-    Enregistrement enregistrement;
-    struct Bloc*suivant;
-} Bloc;
+//  BLOCK:
+// For the chained organization:
+typedef struct Block {
+    Record record;               
+    struct Block *next;        
+} Block;
+
 //organisation contigue:
 typedef struct {
-    Enregistrement enregistrements[10]; 
-    int taille_actuelle;                
-}FichierContigue;
+    Record records[10];        
+    int current_size;         
+} ContiguousFile;
 
-//FICHIER:
-//chainee:
+// FILE:
+// Chained:
 typedef struct {
-    Bloc *tete; 
-}   FichierChaine;
-//contigue:
+    Block *head;              
+} ChainedFile;
+
+// Contiguous:
 typedef struct {
-    Enregistrement enregistrements[10]; 
-    int taille_max;                      
-    int taille_actuelle;                
-} FichierContigue;
+    Record records[10];         
+    int max_size;               
+    int current_size;           
+} ContiguousFile;
 
 //MS:
 typedef struct {
-    FichierChaine fichiers_chaînes[MAX_FICHIERS]; 
-    FichierContigue fichiers_contigus[MAX_FICHIERS]; 
-    int nombre_fichiers;
-} MemoireSecondaire;
+    ChainedFile chained_files[MAX_FILES];      
+    ContiguousFile contiguous_files[MAX_FILES]; 
+    int number_of_files;
+} SecondaryMemory;                        
 
-//organisastion contigue:
-void initialiserFichierContigu(FichierContigue*fichier){
-    fichier->taille_actuelle = 0;
+// Contiguous organization:
+void initializeContiguousFile(ContiguousFile *file) {
+    file->current_size = 0; 
 }
-int ajouter_enregistrement_contigu(FichierContigue*fichier, int id, const char *nom){
-     if (fichier->taille_actuelle >= TAILLE_MAX) {
-        printf("Erreur : Espace insuffisant dans le fichier contigu.\n");
-        return 0; // Échec
+int add_record_contiguous(ContiguousFile *file, int id, const char *name) {
+    if (file->current_size >= MAX_SIZE) {
+        printf("Error: Insufficient space in the contiguous file.\n");
+        return 0; // Failure
     }
-    fichier->enregistrements[fichier->taille_actuelle].id = id;
-    strcpy(fichier->enregistrements[fichier->taille_actuelle].nom, nom);
-    fichier->taille_actuelle++;
-    return 1; 
+    file->records[file->current_size].id = id; 
+    strcpy(file->records[file->current_size].name, name);
+    file->current_size++; 
+    return 1; // Success
 }
-void liberer_fichier_contigu(FichierContigue *fichier) {
-    fichier->taille_actuelle = 0;
+void free_contiguous_file(ContiguousFile *file) {
+    file->current_size = 0;
 }
 
-void afficher_fichier_contigu(const FichierContigue *fichier) {
-    if (fichier->taille_actuelle == 0) {
-        printf("Le fichier est vide.\n");
+void display_contiguous_file(const ContiguousFile *file) {
+    if (file->current_size == 0) {
+        printf("The file is empty.\n");
     }
-    for (int i = 0; i < fichier->taille_actuelle; i++) {
-        printf("Enregistrement %d: ID=%d, Nom=%s\n", i + 1, fichier->enregistrements[i].id, fichier->enregistrements[i].nom);
+    for (int i = 0; i < file->current_size; i++) {
+        printf("Record %d: ID=%d, Name=%s\n", i + 1, file->records[i].id, file->records[i].name);
     }
 }
-void compactage_fichier_contigu(FichierContigue *fichier) {
+void compact_contiguous_file(ContiguousFile *file) {
     int i, j = 0;
-    for (i = 0; i < fichier->taille_actuelle; i++) {
-        if (fichier->enregistrements[i].id != 0) { 
-            fichier->enregistrements[j] = fichier->enregistrements[i];
+    for (i = 0; i < file->current_size; i++) {
+        if (file->records[i].id != 0) { 
+            file->records[j] = file->records[i]; 
             j++;
         }
     }
-    fichier->taille_actuelle = j; 
+    file->current_size = j; 
 }
-void defragmentation_fichier_contigu(FichierContigue *fichier) {
+void defragment_contiguous_file(ContiguousFile *file) {
     int j = 0;
-
-    for (int i = 0; i < fichier->taille_actuelle; i++) {
-        if (fichier->enregistrements[i].id != 0) { 
-            fichier->enregistrements[j] = fichier->enregistrements[i];
+    for (int i = 0; i < file->current_size; i++) {
+        if (file->records[i].id != 0) { 
+            file->records[j] = file->records[i]; 
             j++;
         }
     }
-    fichier->taille_actuelle = j; 
+    file->current_size = j; 
 }
 
-
-//0rganisation chainee:
-void initialiser_fichier_chaine(FichierChaine *fichier) {
-    fichier->tete = NULL;
+// Chained organization:
+void initialize_chained_file(ChainedFile *file) {
+    file->head = NULL; 
 }
-void ajouter_enregistrement_chaine(FichierChaine *fichier, int id, const char *nom) {
-    Bloc *nouveau_bloc = (Bloc *)malloc(sizeof(Bloc));
-    if (nouveau_bloc == NULL) {
-        printf("Erreur : Espace memoire insuffisant pour allouer un nouveau bloc.\n");
+void add_record_chained(ChainedFile *file, int id, const char *name) {
+    Block *new_block = (Block *)malloc(sizeof(Block)); // Allocate memory for a new block
+    if (new_block == NULL) {
+        printf("Error: Insufficient memory to allocate a new block.\n");
         return; 
     }
-    nouveau_bloc->enregistrement.id = id;
-    strcpy(nouveau_bloc->enregistrement.nom, nom);
-    nouveau_bloc->suivant = NULL;
+    new_block->record.id = id; 
+    strcpy(new_block->record.name, name); 
+    new_block->next = NULL; 
 
-    if (fichier->tete == NULL) {
-        fichier->tete = nouveau_bloc; 
+    if (file->head == NULL) {
+        file->head = new_block; 
     } else {
-        Bloc *courant = fichier->tete;
-        while (courant->suivant != NULL) {
-            courant = courant->suivant; 
+        Block *current = file->head;
+        while (current->next != NULL) {
+            current = current->next; 
         }
-        courant->suivant = nouveau_bloc; 
+        current->next = new_block; 
     }
 }
-void liberer_fichier_chaine(FichierChaine *fichier) {
-    Bloc *courant = fichier->tete;
-    while (courant != NULL) {
-        Bloc *temp = courant;
-        courant = courant->suivant;
+void free_chained_file(ChainedFile *file) {
+    Block *current = file->head; 
+    while (current != NULL) {
+        Block *temp = current; 
+        current = current->next; 
         free(temp); 
     }
-    fichier->tete = NULL; 
+    file->head = NULL; 
 }
-void afficher_fichier_chaine(const FichierChaine *fichier) {
-     if (fichier->tete == NULL) {
-        printf("Le fichier chaîné est vide.\n");
+void display_chained_file(const ChainedFile *file) {
+    if (file->head == NULL) {
+        printf("The chained file is empty.\n");
         return;
     }
-    Bloc *courant = fichier->tete;
-    while (courant != NULL) {
-        printf("Enregistrement: ID=%d, Nom=%s\n", courant->enregistrement.id, courant->enregistrement.nom);
-        courant = courant->suivant; 
+    Block *current = file->head; 
+    while (current != NULL) {
+        printf("Record: ID=%d, Name=%s\n", current->record.id, current->record.name);
+        current = current->next; 
     }
 }
-void compactage_fichier_chaine(FichierChaine *fichier) {
-    Bloc *courant = fichier->tete;
-    Bloc *nouvelle_tete = NULL;
-    Bloc *dernier_bloc = NULL;   
+void compact_chained_file(ChainedFile *file) {
+    Block *current = file->head; 
+    Block *new_head = NULL; 
+    Block *last_block = NULL; 
 
-    while (courant != NULL) {
-        Bloc *nouveau_bloc = (Bloc *)malloc(sizeof(Bloc));
-        if (nouveau_bloc == NULL) {
-            printf("Erreur : Espace mémoire insuffisant pour allouer un nouveau bloc lors du compactage.\n");
+    while (current != NULL) {
+        Block *new_block = (Block *)malloc(sizeof(Block)); 
+        if (new_block == NULL) {
+            printf("Error: Insufficient memory to allocate a new block during compaction.\n");
             return; 
         }
-        nouveau_bloc->enregistrement = courant->enregistrement;
-        nouveau_bloc->suivant = NULL;
+        new_block->record = current->record; 
+        new_block->next = NULL; 
 
-        if (nouvelle_tete == NULL) {
-            nouvelle_tete = nouveau_bloc;
+        if (new_head == NULL) {
+            new_head = new_block; 
         } else {
-            dernier_bloc->suivant = nouveau_bloc; 
+            last_block->next = new_block; 
         }
-        dernier_bloc = nouveau_bloc; 
-        courant = courant->suivant;  
+        last_block = new_block; 
+        current = current->next; 
     }
-    liberer_fichier_chaine(fichier);
-    fichier->tete = nouvelle_tete;
+    free_chained_file(file); 
+    file->head = new_head; 
 }
-void defragmentation_fichier_chaine(FichierChaine *fichier) {
-    Bloc *courant = fichier->tete;
-    Bloc *nouvelle_tete = NULL; 
-    Bloc *dernier_bloc = NULL;  
+void defragment_chained_file(ChainedFile *file) {
+    Block *current = file->head; 
+    Block *new_head = NULL; 
+    Block *last_block = NULL; 
+    while (current != NULL) {
+        if (current->record.id != 0) { 
+            Block *new_block = (Block *)malloc(sizeof(Block)); 
+            if (new_block == NULL) {
+                printf("Error: Insufficient memory to allocate a new block during defragmentation.\n");
+                return; 
+            }
+            new_block->record = current->record; 
+            new_block->next = NULL; 
 
-    while (courant != NULL) {
-       
-        Bloc *nouveau_bloc = (Bloc *)malloc(sizeof(Bloc));
-        if (nouveau_bloc == NULL) {
-            printf("Erreur : Espace mémoire insuffisant pour allouer un nouveau bloc lors de la défragmentation.\n");
-            return; 
+            if (new_head == NULL) {
+                new_head = new_block; 
+            } else {
+                last_block->next = new_block; 
+            }
+            last_block = new_block; 
         }
-        nouveau_bloc->enregistrement = courant->enregistrement;
-        nouveau_bloc->suivant = NULL;
-
-        if (nouvelle_tete == NULL) {
-            nouvelle_tete = nouveau_bloc; 
-        } else {
-            dernier_bloc->suivant = nouveau_bloc; 
-        }
-        dernier_bloc = nouveau_bloc; 
-        courant = courant->suivant;
-    } 
-    liberer_fichier_chaine(fichier);
-    fichier ->tete=nouvelle_tete;
-}
-
-void initialiser_fichier_contigu(FichierContigue *fichier);
-void initialiser_fichier_chaine(FichierChaine *fichier);
-int ajouter_enregistrement_contigu(FichierContigue *fichier, int id, const char *nom);
-void liberer_fichier_contigu(FichierContigue *fichier);
-void afficher_fichier_contigu(const FichierContigue *fichier);
-void defragmentation_fichier_contigu(FichierContigue *fichier);
-void ajouter_enregistrement_chaine(FichierChaine *fichier, int id, const char *nom);
-void liberer_fichier_chaine(FichierChaine *fichier);
-void afficher_fichier_chaine(const FichierChaine *fichier);
-void defragmentation_fichier_chaine(FichierChaine *fichier);
-void afficher_etat_memoire(FichierContigue *fichier_contigu, FichierChaine *fichier_chaine);
+        current = current->next; 
+    }
     
+    free_chained_file(file); 
+    file->head = new_head; 
+}
+
+// Function declarations
+void initialize_contiguous_file(ContiguousFile *file);
+void initialize_chained_file(ChainedFile *file);
+int add_record_contiguous(ContiguousFile *file, int id, const char *name);
+void free_contiguous_file(ContiguousFile *file);
+void display_contiguous_file(const ContiguousFile *file);
+void defragment_contiguous_file(ContiguousFile *file);
+void add_record_chained(ChainedFile *file, int id, const char *name);
+void free_chained_file(ChainedFile *file);
+void display_chained_file(const ChainedFile *file);
+void defragment_chained_file(ChainedFile *file);
+void display_memory_state(ContiguousFile *contiguous_file, ChainedFile *chained_file);
 
 
 
