@@ -2,7 +2,7 @@
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
-#define NUM_BLOCKS 10  // Total num of blocks
+#define NUM_BLOCKS 100  // Total num of blocks
 #define BLOCK_SIZE 512 // block size 
 #define MAX_FILES 10
 #define MAX_SIZE 10
@@ -76,15 +76,15 @@ void initialize_chained_file(ChainedFile *file)
     file->head = NULL;
 }
 void initialize_allocation_table()
-{
-    for (int i = 0; i < NUM_BLOCKS; i++)
+{int i;
+    for ( i = 0; i < NUM_BLOCKS; i++)
     {
         virtual_disk[i].is_occupied = 0;    // All blocks are free at initialization
         virtual_disk[i].record_count = 0;  // No records initially
         memset(virtual_disk[i].data, 0, BLOCK_SIZE); // Clear block data
     }
 
-    for (int i = 0; i < MAX_FILES; i++)
+    for ( i = 0; i < MAX_FILES; i++)
     {
         files[i].name[0] = '\0';
         initialize_contiguous_file(&contiguous_files[i]);
@@ -93,8 +93,8 @@ void initialize_allocation_table()
 }
 /////////////////////////////// handelig the blocks /////////////////////////////////////////////////
 int find_free_block()
-{
-    for (int i = 0; i < NUM_BLOCKS; i++)
+{int i;
+    for ( i = 0; i < NUM_BLOCKS; i++)
     {
         if (virtual_disk[i].is_occupied == 0)
         {
@@ -121,8 +121,8 @@ void free_block(int block_index)
 void compact_memory()
 {
     int write_index = 0;
-
-    for (int read_index = 0; read_index < NUM_BLOCKS; read_index++)
+int read_index;
+    for ( read_index = 0; read_index < NUM_BLOCKS; read_index++)
     {
         if (virtual_disk[read_index].is_occupied)
         {
@@ -160,7 +160,8 @@ void create_file(const char *file_name, int file_size, int type, int is_sorted)
         int contiguous_count = 0;
 
         // Find a set of contiguous free blocks
-        for (int i = 0; i < NUM_BLOCKS; i++)
+        int i;
+        for ( i = 0; i < NUM_BLOCKS; i++)
         {
             if (!virtual_disk[i].is_occupied)
             {
@@ -174,7 +175,8 @@ void create_file(const char *file_name, int file_size, int type, int is_sorted)
                 if (contiguous_count == file_size)
                 {
                     // Allocate these blocks
-                    for (int j = start_block; j < start_block + file_size; j++)
+                    int j;
+                    for ( j = start_block; j < start_block + file_size; j++)
                     {
                         allocate_block(j);
                     }
@@ -207,8 +209,8 @@ void create_file(const char *file_name, int file_size, int type, int is_sorted)
     else if (type == 1) // Chained file
 {
     int allocated_blocks = 0;
-
-    for (int i = 0; i < NUM_BLOCKS && allocated_blocks < file_size; i++)
+int i;
+    for ( i = 0; i < NUM_BLOCKS && allocated_blocks < file_size; i++)
     {
         if (!virtual_disk[i].is_occupied)
         {
@@ -243,8 +245,9 @@ void create_file(const char *file_name, int file_size, int type, int is_sorted)
         return;
     }
 
-    // Store the file in the files array
-    for (int i = 0; i < MAX_FILES; i++)
+    // Store the file in the files array 
+    int i;
+    for (i = 0; i < MAX_FILES; i++)
     {
         if (files[i].name[0] == '\0')
         { // Find an empty slot
@@ -297,8 +300,8 @@ int delete_file(const char *filename)
 
 ////////////////////////////// search funtions /////////////////////////////////////
 int sequential_search(ContiguousFile *file, int id, int *index)
-{
-    for (int i = 0; i < file->current_size; i++)
+{int i;
+    for ( i = 0; i < file->current_size; i++)
     {
         if (file->records[i].id == id && file->records[i].is_deleted == 0)
         {
@@ -493,8 +496,8 @@ void physical_delete_contiguous(ContiguousFile *file, int id)
 {
     int index;
     if (search_contiguous(file, id, &index))
-    {
-        for (int i = index; i < file->current_size - 1; i++)
+    {int i;
+        for ( i = index; i < file->current_size - 1; i++)
         {
             file->records[i] = file->records[i + 1];
         }
@@ -533,7 +536,8 @@ void physical_delete_chained(ChainedFile *file, int id)
     printf("Record %d not found.\n", id);
 }
 void logical_delete(const char *filename, int id) {
-    for (int i = 0; i < MAX_FILES; i++) {
+	int i;
+    for ( i = 0; i < MAX_FILES; i++) {
         if (files[i].name[0] != '\0' && strcmp(files[i].name, filename) == 0) {
             if (files[i].type == 0) {
                 logical_delete_contiguous(&contiguous_files[files[i].first_block], id);
@@ -546,7 +550,8 @@ void logical_delete(const char *filename, int id) {
     printf("Error: File '%s' not found.\n", filename);
 }
 void physical_delete(const char *filename, int id) {
-    for (int i = 0; i < MAX_FILES; i++) {
+	int i;
+    for ( i = 0; i < MAX_FILES; i++) {
         if (files[i].name[0] != '\0' && strcmp(files[i].name, filename) == 0) {
             if (files[i].type == 0) {
                 physical_delete_contiguous(&contiguous_files[files[i].first_block], id);
@@ -569,7 +574,8 @@ void display_contiguous_file(const ContiguousFile *file)
     else
     {
         printf("Sorted: %s\n", file->sorted ? "Yes" : "No");
-        for (int i = 0; i < file->current_size; i++)
+        int i;
+        for ( i = 0; i < file->current_size; i++)
         {
             printf("Record %d: ID=%d", i + 1, file->records[i].id);
             if (file->records[i].is_deleted)
@@ -604,7 +610,8 @@ void display_chained_file(const ChainedFile *file)
     }
 }
 void display_records(const char *filename) {
-    for (int i = 0; i < MAX_FILES; i++) {
+	int i;
+    for ( i = 0; i < MAX_FILES; i++) {
         if (files[i].name[0] != '\0' && strcmp(files[i].name, filename) == 0) {
             if (files[i].type == 0) {
                 display_contiguous_file(&contiguous_files[files[i].first_block]);
@@ -618,20 +625,22 @@ void display_records(const char *filename) {
 }
 void display_allocation_table()
 {
-    printf("\n--- Memory Allocation Table ---\n");
-    printf("Legend: " GREEN "[Green = Free]" RESET ", " RED "[Red = Occupied]" RESET "\n\n");
+	system("cls");
 
-    for (int i = 0; i < NUM_BLOCKS; i++)
+    printf("\n\n--- Memory Visualization ---\n\n");
+    printf("Legend: " GREEN "[Green = Free]" RESET ", " RED "[Red = Occupied]" RESET "\n\n");
+int i;
+    for ( i = 0; i < NUM_BLOCKS; i++)
     {
         if (!virtual_disk[i].is_occupied)
         {
-            printf(GREEN "[%02d: Free]" RESET " ", i);
+            printf( GREEN "[%02d: Free]" RESET " ", i);
         }
         else
         {
             char *file_name = NULL;
-
-            for (int j = 0; j < MAX_FILES; j++)
+			int j;
+            for ( j = 0; j < MAX_FILES; j++)
             {
                 if (files[j].name[0] != '\0' &&
                     i >= files[j].first_block &&
@@ -658,9 +667,25 @@ void display_allocation_table()
         }
     }
     printf("\n");
+    printf("\n");
 }
 
+int back(){
+printf("\n");
+	
+    char backKey;
+    printf("Press any key to go back to the main menu: ");
+   
 
+    #ifdef _WIN32
+        _getch(); 
+    	#ifdef _WIN32
+        system("cls");
+	#endif
+		#endif
+        return ;
+   
+}
 
 
 
@@ -675,90 +700,211 @@ void menu()
 
     while (1)
     {
-        printf("\n--- Menu ---\n");
+        printf("\n  Menu: \n\n");
         printf("1. Create File\n");
         printf("2. Delete File\n");
         printf("3. Rename File\n");
-        printf("4. Display Allocation Table\n");
+        printf("4. Display Memory state\n");
         printf("5. Insert Record\n");
         printf("6. Display Records in File\n");
         printf("7. Logical Delete Record\n");
         printf("8. Physical Delete Record\n");
         printf("9. Compact Memory\n");
-        printf("10. Exit\n");
-        printf("Enter your choice: ");
-        scanf("%d", &choice);
+        printf("10. Display the metadata file \n");
+        printf("11. Clear memory \n");
+        printf("12. Exit program \n \n");
+       
+         do {
+       printf("Enter your choice:  ");
+        
+        
+        if (scanf("%d", &choice) != 1) {
+            while (getchar() != '\n');  
+            printf("Invalid input. Please enter a valid number between 1 and 12.\n");
+        } else {
+            
+            if (getchar() != '\n') {
+                // Clear the remaining input characters
+                while (getchar() != '\n');  // Clear the input buffer
+                printf("Invalid input. Please enter a number between 1 and 12.\n");
+            } else if (choice < 1 || choice > 12) {
+                printf("Invalid choice. Please enter a number between 1 and 12.\n");
+            }
+        }
+    } while (choice < 1 || choice > 12);
 
         switch (choice)
         {
         case 1:
+        	system("cls");
             printf("Enter file name: ");
             scanf("%s", file_name);
-            printf("Enter number of records: ");
-            scanf("%d", &num_records);
-            printf("Enter file type (contiguous = 0 / chained = 1): ");
-            scanf("%d", &file_type);
-            printf("Is the file sorted? (0 = No, 1 = Yes): ");
-            scanf("%d", &is_sorted);
+           while (1) {  // Infinite loop to keep asking for valid input
+        printf("Enter number of records: ");
+        
+        // Try to read an integer
+        if (scanf("%d", &num_records) != 1) {
+            // If the input is not an integer, clear the input buffer
+            while (getchar() != '\n');  // Clear the input buffer
+            
+            // Print an error message
+            printf("Invalid input. Please enter a valid number.\n");
+        } else {
+            // If the input is a valid integer, break the loop
+            break;
+        }
+    }
+          while (1) {
+        printf("Enter file type (contiguous = 0 / chained = 1): ");
+        if (scanf("%d", &file_type) != 1 || (file_type != 0 && file_type != 1)) {
+            // If input is not valid or not 0 or 1, clear input buffer and show an error
+            while (getchar() != '\n');  // Clear the input buffer
+            printf("Invalid input. Please enter 0 for contiguous or 1 for chained.\n");
+        } else {
+            break;  // Valid input, exit the loop
+        }
+    }
+
+    // Handle is_sorted input
+    while (1) {
+        printf("Is the file sorted? (0 = No, 1 = Yes): ");
+        if (scanf("%d", &is_sorted) != 1 || (is_sorted != 0 && is_sorted != 1)) {
+            // If input is not valid or not 0 or 1, clear input buffer and show an error
+            while (getchar() != '\n');  // Clear the input buffer
+            printf("Invalid input. Please enter 0 for No or 1 for Yes.\n");
+        } else {
+            break;  // Valid input, exit the loop
+        }
+    }
             int num_blocks = (num_records * RECORD_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE;
             create_file(file_name, num_blocks, file_type, is_sorted);
             if (file_type == 0)
             {
                 contiguous_files[find_free_block()].is_sorted = is_sorted;
             }
+            back();
             break;
         case 2:
+        	system("cls");
             printf("Enter file name to delete: ");
             scanf("%s", file_name);
             delete_file(file_name);
+            back();
             break;
         case 3:
+        	system("cls");
             printf("Enter current file name: ");
             scanf("%s", file_name);
             printf("Enter new file name: ");
             scanf("%s", new_name);
             rename_file(file_name, new_name);
+            back();
             break;
         case 4:
+        	
             display_allocation_table();
+            back();
             break;
         case 5:
+        	system("cls");
             printf("Enter file name: ");
             scanf("%s", file_name);
-            printf("enter record id :");
-            scanf("%d", &insert_record_id);
+            while (1) {  // Infinite loop to keep asking for valid input
+        printf("enter record id :");
+        
+        // Try to read an integer
+        if (scanf("%d", &insert_record_id) != 1) {
+            // If the input is not an integer, clear the input buffer
+            while (getchar() != '\n');  // Clear the input buffer
+            
+            // Print an error message
+            printf("Invalid input. Please enter a valid number.\n");
+        } else {
+            // If the input is a valid integer, break the loop
+            break;
+        }
+    }
             insert_record(file_name, insert_record_id);
+            back();
             break;
        case 6: 
+       system("cls");
     printf("Enter file name: ");
     scanf("%s", file_name);
     display_records(file_name);
+    back();
     break;
         case 7: 
+        system("cls");
     printf("Enter file name: ");
     scanf("%s", file_name);
-    printf("Enter record ID to logically delete: ");
-    scanf("%d", &id);
+    while (1) {  // Infinite loop to keep asking for valid input
+        printf("Enter record ID to logically delete: ");
+        
+        // Try to read an integer
+        if (scanf("%d", &id) != 1) {
+            // If the input is not an integer, clear the input buffer
+            while (getchar() != '\n');  // Clear the input buffer
+            
+            // Print an error message
+            printf("Invalid input. Please enter a valid number.\n");
+        } else {
+            // If the input is a valid integer, break the loop
+            break;
+        }
+    }
     logical_delete(file_name, id);
-  
+  back();
     break;
 case 8: 
+		system("cls");
     printf("Enter file name: ");
     scanf("%s", file_name);
-    printf("Enter record ID to physically delete: ");
-    scanf("%d", &id);
+    while (1) {  // Infinite loop to keep asking for valid input
+         printf("Enter record ID to physically delete: ");
+        // Try to read an integer
+        if (scanf("%d", &id) != 1) {
+            // If the input is not an integer, clear the input buffer
+            while (getchar() != '\n');  // Clear the input buffer
+            
+            // Print an error message
+            printf("Invalid input. Please enter a valid number.\n");
+        } else {
+            // If the input is a valid integer, break the loop
+            break;
+        }
+    }
     physical_delete(file_name, id);
+    back();
     break;
 
         case 9:
+        	system("cls");
+        	printf("Compactage memory ......... \n");
             compact_memory();
-            printf("Memory compacted successfully.\n");
+            printf("Memory compacted successfully.\n ");
+            back();
             break;
+            
         case 10:
-            printf("Exiting program.\n");
+        	system("cls");
+        	 printf("10. Display the metadata file \n");
+            back();
+		break;
+		case 11:
+		system("cls");
+        printf("Clearing memory  ........ \n");
+        printf("Memory cleared succesfully \n");
+         initialize_allocation_table();
+        back();
+		break;    
+        case 12:
+        	
+            printf("Exiting program .......\n");
             return;
         default:
             printf("Invalid choice. Please try again.\n");
+            back();
         }
     }
 }
