@@ -43,6 +43,25 @@ This program simulates file organization and management using both **contiguous*
    ```bash
    gcc -o main main.c
 3.Run the compiled program:
-   ```bash
-      ./main
+   ```
+  ./main
+   ```
+---
+## Students Members
+- Afra Wafa (ID: 232331573420)
+- Benaziza Malak (ID: 232331573215)
+- Abdelatif Aichaoui (ID: 232331707304)
+- Sidari Yassmine (ID: 232331414104)
+- Khaznadji Yasmine (ID: 232331530104)
+- Zerrouki Alaa (ID: 232331576503)
+- Ainouz lyna (ID:232331551211)
+
+
+
+
+
+
+
+
+
 
