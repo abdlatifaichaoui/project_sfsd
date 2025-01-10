@@ -39,12 +39,12 @@ Setup and Compilation:
 2.Compile the program using a C compiler:
 bash
 
-gcc -o MainProject MainProject.c
+     gcc -o MainProject MainProject.c
 
 3.Run the compiled program:
 bash
 
-./MainProject
+      ./MainProject
 
 Menu Options
 Menu:
