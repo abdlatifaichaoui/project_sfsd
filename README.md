@@ -41,8 +41,8 @@ This program simulates file organization and management using both **contiguous*
 1. Clone the repository or download the source code.
 2. Compile the program using a C compiler:
    ```bash
-   gcc -o MainProject MainProject.c
+   gcc -o main main.c
 3.Run the compiled program:
    ```bash
-      ./MainProject
+      ./main
 
