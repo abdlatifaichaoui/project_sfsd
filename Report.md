@@ -49,8 +49,8 @@ The `maint.c` program is a file management simulator that allows users to create
    ![Insert Record Output](https://media.discordapp.net/attachments/1300606745382617118/1327380163737944074/Screenshot_2025-01-10_215434.png?ex=6782da9c&is=6781891c&hm=a182f90a6288f719a22cad43699c6d2a6053754cb3ed56df0a0e8d141e45d21b&=&format=webp&quality=lossless&width=615&height=374)
 
 
-### 4. **Rename file**
-   Rename a file by providing the old name and a new name.
+### 4. **Display records in file**
+ 
 
  ![Insert Record Output](https://media.discordapp.net/attachments/1300606745382617118/1327376503859580998/Screenshot_2025-01-10_213445.png?ex=6782d733&is=678185b3&hm=acfa1a61108de1a99efcb6dd3722f70444f6a2ade4d6cce6e8f0b7da8c4705e8&=&format=webp&quality=lossless&width=627&height=216)
 
