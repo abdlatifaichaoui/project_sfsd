@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #define NUM_BLOCKS 100  // Total num of blocks
-#define BLOCK_SIZE 512 // block size 
+#define BLOCK_SIZE 640 // block size 
 #define MAX_FILES 10
 #define MAX_SIZE 10
 #define RED "\033[0;31m"
@@ -53,6 +53,14 @@ typedef struct
     int is_sorted;
     int type; // 1 = Chained, 0 = Contiguous
 } file;
+
+typedef struct MetaData {
+    char fileName[50];
+    int fileSize;
+    int usedBlocks;
+    int recordCount;
+    int firstBlockAddress;
+} MetaData;
 
 Block virtual_disk[NUM_BLOCKS]; // Virtual disk with blocks
 file files[MAX_FILES];
@@ -137,11 +145,47 @@ int read_index;
         }
     }
 }
+
+/////////////////////////////// MetaDataFile ////////////////////////////////////////////////
+// Read metadata
+void readMetaData(FILE *f,MetaData *meta) {
+
+    rewind(f);
+    fread(meta, sizeof(MetaData), 1, f);
+  
+}
+
+// Update metadata
+void updateMetaData(FILE *f, MetaData *meta) {
+    rewind(f);
+    fwrite(meta, sizeof(MetaData), 1, f);
+}
+
+// Create metadata file
+void createMetaData(FILE *f, const char *fileName, int fileSize, int blockCount, int firstBlockAddress) {
+    MetaData meta;
+    strcpy(meta.fileName, fileName);
+    meta.fileSize = fileSize;
+    meta.usedBlocks = blockCount;
+    meta.recordCount = 0;
+    meta.firstBlockAddress = firstBlockAddress;
+
+    updateMetaData(f, &meta);
+}
+
+// Display metadata
+void displayMetaData(const MetaData *meta) {
+    printf("File name: %s\n", meta->fileName);
+    printf("Total file size: %d bytes\n", meta->fileSize);
+    printf("Number of used blocks: %d\n", meta->usedBlocks);
+    printf("First block address: %d\n", meta->firstBlockAddress);
+}
+
 ///////////////////////////////  handeling files  /////////////////////////////////////////////////
 
-void create_file(const char *file_name, int file_size, int type, int is_sorted)
+void create_file(const char *file_name, int file_size, int type, int is_sorted,int num_records)
 {
-
+ printf("%d",file_size);
     if (file_size > NUM_BLOCKS)
     {
         printf("Error: File size exceeds available blocks.\n");
@@ -199,6 +243,18 @@ void create_file(const char *file_name, int file_size, int type, int is_sorted)
             }
         }
 
+           // create filemetadata 
+            // Open a file in write mode
+    FILE *f = fopen(file_name, "w");
+
+    // Check if the file was created/opened successfully
+    if (f == NULL) {
+        printf("Error opening the file.\n");
+        
+    }
+           
+           createMetaData(f, file_name, 0, file_size,start_block);
+            fclose(f);
         // Check if contiguous blocks were successfully allocated
         if (new_file.first_block == -1)
         {
@@ -237,6 +293,16 @@ int i;
 
     initialize_chained_file(&chained_files[new_file.first_block]);
     printf("Chained file '%s' created successfully.\n", file_name);
+     FILE *f = fopen(file_name, "w");
+
+    // Check if the file was created/opened successfully
+    if (f == NULL) {
+        printf("Error opening the file.\n");
+        
+    }
+           
+           createMetaData(f, file_name, 0, allocated_blocks,i);
+            fclose(f);
 }
 
     else
@@ -258,7 +324,7 @@ int i;
 
     printf("Error: Maximum number of files reached.\n");
 }
-int rename_file(char *old_name, char *new_name)
+int rename_file(char *old_name, char *new_name,MetaData meta)
 {
     int i;
     for (i = 0; i < NUM_BLOCKS; i++)
@@ -268,6 +334,18 @@ int rename_file(char *old_name, char *new_name)
 
             strncpy(files[i].name, new_name, MAX_FILENAME_LENGTH);
             printf("File '%s' renamed to '%s'.\n", old_name, new_name);
+            rename(old_name, new_name) ;
+            FILE *f = fopen(new_name, "r+b");
+
+    // Check if the file was created/opened successfully
+    if (f == NULL) {
+        printf("Error opening the file.\n");
+        return 1;
+    }
+            readMetaData(f,&meta);
+           strcpy(meta.fileName, new_name);
+            updateMetaData(f,&meta);
+              fclose(f);
 
             return 0;
         }
@@ -442,7 +520,7 @@ int add_record_contiguous(ContiguousFile *file, int id, int is_sorted)
     file->current_size++;
     return 1;
 }
-int insert_record(const char *filename, int id)
+int insert_record(const char *filename, int id,MetaData meta)
 {
     int i;
     for (i = 0; i < NUM_BLOCKS; i++)
@@ -452,13 +530,40 @@ int insert_record(const char *filename, int id)
             if (files[i].type == 0)
             {
                 add_record_contiguous(&contiguous_files[files[i].first_block], id, files[i].is_sorted);
+                 FILE *f1 = fopen(filename, "r+b");
+
+    // Check if the file was created/opened successfully
+    if (f1 == NULL) {
+        printf("Error opening the file.\n");
+        return 1;
+    }
+            readMetaData(f1,&meta);
+         
+           meta.fileSize = meta.fileSize + (1* RECORD_SIZE);
+          
+            updateMetaData(f1, &meta);
+              fclose(f1);
                 return 1;
             }
             else if (files[i].type == 1)
             {
                 add_record_chained(&chained_files[files[i].first_block], id, files[i].is_sorted);
+                 FILE *f1 = fopen(filename, "r+b");
+
+    // Check if the file was created/opened successfully
+    if (f1 == NULL) {
+        printf("Error opening the file.\n");
+        return 1;
+    }
+            readMetaData(f1,&meta);
+         
+           meta.fileSize = meta.fileSize + (1* RECORD_SIZE);
+          
+            updateMetaData(f1, &meta);
+              fclose(f1);
                 return 1;
             }
+           
         }
     }
     printf("Error: File '%s' not found.\n", filename);
@@ -473,6 +578,10 @@ void logical_delete_contiguous(ContiguousFile *file, int id)
     {
         file->records[index].is_deleted = 1;
         printf("Record %d marked as deleted (logical).\n", id);
+          int block_index = file - contiguous_files; // Find the block index
+    int records_per_block = BLOCK_SIZE / RECORD_SIZE;
+     int current_block = block_index + (file->current_size / records_per_block);
+    virtual_disk[current_block].record_count--;
     }
     else
     {
@@ -485,7 +594,10 @@ void logical_delete_chained(ChainedFile *file, int id)
     if (node != NULL)
     {
         node->record.is_deleted = 1;
+         int block_index = file - chained_files;
+    virtual_disk[block_index].record_count--;
         printf("Record %d marked as deleted (logical).\n", id);
+         
     }
     else
     {
@@ -502,6 +614,11 @@ void physical_delete_contiguous(ContiguousFile *file, int id)
             file->records[i] = file->records[i + 1];
         }
         file->current_size--;
+          int block_index = file - contiguous_files; // Find the block index
+    int records_per_block = BLOCK_SIZE / RECORD_SIZE;
+     int current_block = block_index + (file->current_size / records_per_block);
+    virtual_disk[current_block].record_count--;
+       
         printf("Record %d deleted (physical).\n", id);
     }
     else
@@ -527,6 +644,9 @@ void physical_delete_chained(ChainedFile *file, int id)
                 previous->next = current->next;
             }
             free(current);
+             int block_index = file - chained_files;
+    		virtual_disk[block_index].record_count--;
+          
             printf("Record %d deleted (physical).\n", id);
             return;
         }
@@ -535,7 +655,7 @@ void physical_delete_chained(ChainedFile *file, int id)
     }
     printf("Record %d not found.\n", id);
 }
-void logical_delete(const char *filename, int id) {
+void logical_delete(const char *filename, int id,MetaData meta) {
 	int i;
     for ( i = 0; i < MAX_FILES; i++) {
         if (files[i].name[0] != '\0' && strcmp(files[i].name, filename) == 0) {
@@ -544,12 +664,23 @@ void logical_delete(const char *filename, int id) {
             } else if (files[i].type == 1) {
                 logical_delete_chained(&chained_files[files[i].first_block], id);
             }
+             FILE *f3 = fopen(filename, "r+b");
+
+    // Check if the file was created/opened successfully
+    if (f3 == NULL) {
+        printf("Error opening the file.\n");
+        return ;
+    }
+            readMetaData(f3,&meta);
+           meta.fileSize = meta.fileSize - (1* RECORD_SIZE);
+            updateMetaData(f3,&meta);
+              fclose(f3);
             return;
         }
     }
     printf("Error: File '%s' not found.\n", filename);
 }
-void physical_delete(const char *filename, int id) {
+void physical_delete(const char *filename, int id,MetaData meta) {
 	int i;
     for ( i = 0; i < MAX_FILES; i++) {
         if (files[i].name[0] != '\0' && strcmp(files[i].name, filename) == 0) {
@@ -558,6 +689,17 @@ void physical_delete(const char *filename, int id) {
             } else if (files[i].type == 1) {
                 physical_delete_chained(&chained_files[files[i].first_block], id);
             }
+            FILE *f2 = fopen(filename, "r+b");
+
+    // Check if the file was created/opened successfully
+    if (f2 == NULL) {
+        printf("Error opening the file.\n");
+        return ;
+    }
+            readMetaData(f2,&meta);
+           meta.fileSize = meta.fileSize - (1* RECORD_SIZE);
+            updateMetaData(f2,&meta);
+              fclose(f2);
             return;
         }
     }
@@ -696,6 +838,7 @@ void menu()
     char new_name[MAX_FILENAME_LENGTH];
     int num_records, file_type, is_sorted, insert_record_id, id;
     SecondaryMemory memory;
+    MetaData meta;
     initialize_allocation_table();
 
     while (1)
@@ -777,7 +920,8 @@ void menu()
         }
     }
             int num_blocks = (num_records * RECORD_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE;
-            create_file(file_name, num_blocks, file_type, is_sorted);
+            printf("%d",num_blocks);
+            create_file(file_name, num_blocks, file_type, is_sorted,num_records);
             if (file_type == 0)
             {
                 contiguous_files[find_free_block()].is_sorted = is_sorted;
@@ -789,6 +933,7 @@ void menu()
             printf("Enter file name to delete: ");
             scanf("%s", file_name);
             delete_file(file_name);
+            remove(file_name);
             back();
             break;
         case 3:
@@ -797,7 +942,8 @@ void menu()
             scanf("%s", file_name);
             printf("Enter new file name: ");
             scanf("%s", new_name);
-            rename_file(file_name, new_name);
+            rename_file(file_name, new_name,meta);
+           
             back();
             break;
         case 4:
@@ -824,7 +970,8 @@ void menu()
             break;
         }
     }
-            insert_record(file_name, insert_record_id);
+            insert_record(file_name, insert_record_id,meta);
+            
             back();
             break;
        case 6: 
@@ -853,7 +1000,9 @@ void menu()
             break;
         }
     }
-    logical_delete(file_name, id);
+    logical_delete(file_name, id,meta);
+    
+   
   back();
     break;
 case 8: 
@@ -874,7 +1023,8 @@ case 8:
             break;
         }
     }
-    physical_delete(file_name, id);
+    physical_delete(file_name, id,meta);
+   
     back();
     break;
 
@@ -882,6 +1032,7 @@ case 8:
         	system("cls");
         	printf("Compactage memory ......... \n");
             compact_memory();
+         
             printf("Memory compacted successfully.\n ");
             back();
             break;
@@ -889,6 +1040,19 @@ case 8:
         case 10:
         	system("cls");
         	 printf("10. Display the metadata file \n");
+        	  printf("Enter file name: ");
+    			scanf("%s", file_name);
+    			FILE *file = fopen(file_name, "r");
+
+    // Check if the file was created/opened successfully
+    if (file == NULL) {
+        printf("Error opening the file.\n");
+        return ;
+    }
+        readMetaData(file,&meta);
+         fclose(file);
+        displayMetaData(&meta);
+        
             back();
 		break;
 		case 11:
