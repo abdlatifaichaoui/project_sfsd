@@ -13,53 +13,52 @@ This program simulates file organization and management using both contiguous an
 
 Features:
 1).Storage Organization:
+ Contiguous Files: Store records in an array, sorted or unsorted.
+ Chained Files: Use a linked list to store records, supporting sorted and unsorted modes.
 
-         *Contiguous Files: Store records in an array, sorted or unsorted.
-         *Chained Files: Use a linked list to store records, supporting sorted and unsorted modes.
 2).File Operations:
+Create a File: Choose organization type and sorting preference.
+Add Records: Insert records into existing files.
+Rename Files: Rename a file in the virtual disk.
+Delete Files: Remove a file and free its associated memory block.
 
-         *Create a File: Choose organization type and sorting preference.
-         *Add Records: Insert records into existing files.
-         *Rename Files: Rename a file in the virtual disk.
-         *Delete Files: Remove a file and free its associated memory block.
 3).Record Operations:
+Add, search, and delete records by ID.
 
-         *Add, search, and delete records by ID.
 4).Memory Management:
+Display the memory allocation table.
+Defragment and compact the memory to optimize storage usage.
+Clear the entire memory.
 
-        *Display the memory allocation table.
-        *Defragment and compact the memory to optimize storage usage.
-        *Clear the entire memory.
 5).User-Friendly Menu:
-
-        *Provides a clean, interactive menu for managing all operations.
+Provides a clean, interactive menu for managing all operations.
 
 Setup and Compilation:
 1.Clone the repository or download the source code.
 2.Compile the program using a C compiler:
-bash
 
+bash
      gcc -o MainProject MainProject.c
 
 3.Run the compiled program:
-bash
 
+bash
       ./MainProject
 
 Menu Options
-Menu:
-1. Create a file
-2. Insert a record
-3. Search a record by ID
-4. Delete a record by ID
-5. Delete a file
-6. Defragment a file
-7. Display metadata associated with a file
-8. Compact secondary memory
-9. Rename a file
-10. Display memory state
-11. Clear memory
-12. Exit the program
+ Menu:
+ 1. Create a file
+ 2. Insert a record
+ 3. Search a record by ID
+ 4. Delete a record by ID
+ 5. Delete a file
+ 6. Defragment a file
+ 7. Display metadata associated with a file
+ 8. Compact secondary memory
+ 9. Rename a file
+ 10. Display memory state
+ 11. Clear memory
+ 12. Exit the program
 
 Main Loop
 The main() function runs an infinite loop displaying the menu and handling user input.
