@@ -36,13 +36,13 @@ Provides a clean, interactive menu for managing all operations.
 Setup and Compilation:
 1.Clone the repository or download the source code.
 2.Compile the program using a C compiler:
-
 bash
-     gcc -o MainProject MainProject.c
+
+      gcc -o MainProject MainProject.c
 
 3.Run the compiled program:
-
 bash
+
       ./MainProject
 
 Menu Options
@@ -60,24 +60,3 @@ Menu Options
  11. Clear memory
  12. Exit the program
 
-Main Loop
-The main() function runs an infinite loop displaying the menu and handling user input.
-
-Invalid Inputs: Any invalid input is rejected, and the user is prompted again.
-Exit Option: Selecting option 12 ends the program.
-
-Function Details
-1. Menu Display
-The showMenu() function displays the menu for file and memory operations.
-
-2. Exit Program
-The exitProgram() function cleanly terminates the program.
-
-3. Main Program Flow
-The main() function:
-
-Initializes the memory allocation table.
-Continuously displays the menu.
-Executes the operation corresponding to the user's choice
-
-        
