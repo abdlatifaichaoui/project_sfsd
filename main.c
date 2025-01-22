@@ -94,6 +94,7 @@ void initialize_allocation_table()
 
     for ( i = 0; i < MAX_FILES; i++)
     {
+	remove(files[i].name);
         files[i].name[0] = '\0';
         initialize_contiguous_file(&contiguous_files[i]);
         initialize_chained_file(&chained_files[i]);
@@ -882,6 +883,14 @@ void menu()
         	system("cls");
             printf("Enter file name: ");
             scanf("%s", file_name);
+		int i;
+         		int a = 0;
+             for ( i = 0; i < MAX_FILES; i++){
+             	if(strcmp(file_name,files[i].name) == 0){
+             		a = 1;
+				 }
+			 }
+			 if(a == 0){
            while (1) {  // Infinite loop to keep asking for valid input
         printf("Enter number of records: ");
         
@@ -926,7 +935,11 @@ void menu()
             {
                 contiguous_files[find_free_block()].is_sorted = is_sorted;
             }
-            back();
+	            back();}
+		else {
+            	printf("this file already exist");
+            	back();
+			}
             break;
         case 2:
         	system("cls");
