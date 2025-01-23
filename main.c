@@ -35,6 +35,7 @@ typedef struct
     Record records[MAX_SIZE];
     int max_size;
     int current_size;
+    int i ;
     int sorted;
     int is_sorted; 
   
@@ -79,6 +80,7 @@ typedef struct
 void initialize_contiguous_file(ContiguousFile *file,int num_records)
 {
     file->current_size = 0;
+    file->i = 0;
     file->sorted = 1;
      file->max_size = num_records;
 }
@@ -484,7 +486,40 @@ Node *search_chained(ChainedFile *file, int id)
     }
     return NULL;
 }
+void search_record_by_id_in_file(const char *file_name, int id) {
+    int block_index = -1;
+    int position_in_block = -1;
 
+    // Parcourir les fichiers pour trouver celui correspondant au nom donné
+    int i;
+    for ( i = 0; i < MAX_FILES; i++) {
+        if (files[i].name[0] != '\0' && strcmp(files[i].name, file_name) == 0) {
+        
+            if (files[i].type == 0) { // Fichier contigu
+           
+                ContiguousFile *file = &contiguous_files[files[i].first_block];
+            
+                if (search_contiguous(file, id, &position_in_block)) {
+                	
+                    
+                 int  block_index = position_in_block / MAX_SIZE ;
+                    printf("Record found: ID=%d in File='%s', Block=%d, Position=%d\n", id, file_name,  block_index, position_in_block);
+                    return;
+                }
+            } else if (files[i].type == 1) { // Fichier chaîné
+                ChainedFile *file = &chained_files[files[i].first_block];
+                Node *record_node = search_chained(file, id);
+                if (record_node != NULL) {
+                    block_index = files[i].first_block;
+                    printf("Record found: ID=%d in File='%s', Block=%d\n", id, file_name, block_index);
+                    return;
+                }
+            }
+        }
+    }
+
+    printf("Record with ID=%d not found in File='%s'.\n", id, file_name);
+}
 
 /////////////////////////////// record management  ///////////////////////////////////////////////
 
@@ -493,10 +528,7 @@ int add_record_chained(ChainedFile *file, int id, int is_sorted,const char *file
 {
     
     Node *new_node = (Node *)malloc(sizeof(Node));
-    if(file->current_size >= file->max_size){
-    	printf("Error: Insufficient space in the contiguous file.\n");
-        return 0;
-	}
+   
     if (!new_node)
     {
         printf("Error: Insufficient memory.\n");
@@ -512,7 +544,7 @@ int add_record_chained(ChainedFile *file, int id, int is_sorted,const char *file
                
             current = current->next;
         }
-    
+ 
     
 FILE *f1 = fopen(filename, "r+b");
 
@@ -623,6 +655,8 @@ int add_record_contiguous(ContiguousFile *file, int id, int is_sorted,const char
     virtual_disk[current_block].record_count++;
 
     file->current_size++;
+    file->i++;
+ 
     return 1;
 }
 int insert_record(const char *filename, int id,MetaData meta)
@@ -798,7 +832,8 @@ void display_contiguous_file(const ContiguousFile *file)
     {
         printf("Sorted: %s\n", file->sorted ? "Yes" : "No");
         int i;
-        for ( i = 0; i < file->current_size; i++)
+        printf("%d",file->current_size);
+        for ( i = 0; i < file->i; i++)
         {
             printf("Record %d: ID=%d", i + 1, file->records[i].id);
             if (file->records[i].is_deleted)
@@ -846,7 +881,10 @@ void display_records(const char *filename) {
     }
     printf("Error: File '%s' not found.\n", filename);
 }
-void display_allocation_table(){
+
+
+
+ void display_allocation_table(){
 	system("cls");
 
     printf("\n\n--- Memory Visualization ---\n\n");
@@ -905,7 +943,8 @@ int i;
     }
     printf("\n");
     printf("\n");
-}
+}  
+
 
 int back(){
 printf("\n");
@@ -965,11 +1004,11 @@ void menu()
                 // Clear the remaining input characters
                 while (getchar() != '\n');  // Clear the input buffer
                 printf("Invalid input. Please enter a number between 1 and 12.\n");
-            } else if (choice < 1 || choice > 12) {
+            } else if (choice < 1 || choice > 13) {
                 printf("Invalid choice. Please enter a number between 1 and 12.\n");
             }
         }
-    } while (choice < 1 || choice > 12);
+    } while (choice < 1 || choice > 13);
 
         switch (choice)
         {
@@ -1169,7 +1208,13 @@ case 8:
         printf("Memory cleared succesfully \n");
          initialize_allocation_table();
         back();
-		break;    
+		break; 
+		case 13:
+			scanf("%d",&id);
+			scanf("%s",&file_name);
+			search_record_by_id_in_file(&file_name,id);
+			
+		break;   
         case 12:
         	
             printf("Exiting program .......\n");
