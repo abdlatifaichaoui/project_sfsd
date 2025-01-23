@@ -3,9 +3,9 @@
 #include <math.h>
 #include <stdlib.h>
 #define NUM_BLOCKS 100  // Total num of blocks
-#define BLOCK_SIZE 640 // block size 
+#define BLOCK_SIZE 128 // block size 
 #define MAX_FILES 10
-#define MAX_SIZE 10
+#define MAX_SIZE 2
 #define RED "\033[0;31m"
 #define RESET "\033[0m"
 #define GREEN "\033[0;32m"
@@ -36,12 +36,14 @@ typedef struct
     int max_size;
     int current_size;
     int sorted;
-    int is_sorted;
+    int is_sorted; 
+  
 } ContiguousFile;
 typedef struct
 {
     Node *head;
-
+    int current_size;
+    int max_size;
 } ChainedFile;
 
 typedef struct
@@ -74,14 +76,17 @@ typedef struct
     int file_count;
 } SecondaryMemory;
 //////////////////////////////// intialization of secondary memory /////////////////////////////////////
-void initialize_contiguous_file(ContiguousFile *file)
+void initialize_contiguous_file(ContiguousFile *file,int num_records)
 {
     file->current_size = 0;
     file->sorted = 1;
+     file->max_size = num_records;
 }
-void initialize_chained_file(ChainedFile *file)
+void initialize_chained_file(ChainedFile *file,int num_records)
 {
+	file->current_size = 0;
     file->head = NULL;
+    file->max_size = num_records;
 }
 void initialize_allocation_table()
 {int i;
@@ -93,11 +98,11 @@ void initialize_allocation_table()
     }
 
     for ( i = 0; i < MAX_FILES; i++)
-    {
-	remove(files[i].name);
-        files[i].name[0] = '\0';
-        initialize_contiguous_file(&contiguous_files[i]);
-        initialize_chained_file(&chained_files[i]);
+    {   
+        remove(files[i].name);
+        files[i].name[0] = '\0';  
+        initialize_contiguous_file(&contiguous_files[i],0);
+        initialize_chained_file(&chained_files[i],0);
     }
 }
 /////////////////////////////// handelig the blocks /////////////////////////////////////////////////
@@ -130,6 +135,13 @@ void free_block(int block_index)
 void compact_memory()
 {
     int write_index = 0;
+    int old_to_new_map[NUM_BLOCKS];  // Maps old block index to new index
+
+    // Initialize mapping
+    int i;
+    for ( i = 0; i < NUM_BLOCKS; i++) {
+        old_to_new_map[i] = -1;  // -1 means the block is not moved
+    }
 int read_index;
     for ( read_index = 0; read_index < NUM_BLOCKS; read_index++)
     {
@@ -139,13 +151,47 @@ int read_index;
             {
                 // Move block data
                 memcpy(&virtual_disk[write_index], &virtual_disk[read_index], sizeof(Block));
-                virtual_disk[read_index].is_occupied = 0; // Mark old location as free
+// Update mapping of moved block
+                old_to_new_map[read_index] = write_index;
+
+                // Clear old block after moving
+                virtual_disk[read_index].is_occupied = 0;
                 memset(virtual_disk[read_index].data, 0, BLOCK_SIZE);
             }
             write_index++;
         }
     }
-}
+
+    // Update file metadata (first block reference)
+    for ( i = 0; i < MAX_FILES; i++)
+    {
+        if (files[i].name[0] != '\0') // If file exists
+        {
+            int old_first_block = files[i].first_block;
+            if (old_to_new_map[old_first_block] != -1) {
+                files[i].first_block = old_to_new_map[old_first_block];
+            }
+        }
+    }
+// Update chained file references
+    for ( i = 0; i < MAX_FILES; i++)
+    {
+        if (chained_files[i].head != NULL)
+        {
+            Node *current = chained_files[i].head;
+            while (current != NULL)
+            {
+                // Instead of calculating an index, we add a 'block_index' field to the Node struct
+                int old_block_index = current->record.id % NUM_BLOCKS; // Assumes IDs are mapped to blocks
+                if (old_to_new_map[old_block_index] != -1)
+                {
+                    int new_block_index = old_to_new_map[old_block_index];
+                    chained_files[i].head = current; // Update head reference
+                }
+                current = current->next;
+            }
+        }
+    }}
 
 /////////////////////////////// MetaDataFile ////////////////////////////////////////////////
 // Read metadata
@@ -228,7 +274,7 @@ void create_file(const char *file_name, int file_size, int type, int is_sorted,i
                     new_file.first_block = start_block;
                     new_file.total_blocks = file_size;
                     new_file.type = 0;
-                    initialize_contiguous_file(&contiguous_files[start_block]);
+                    initialize_contiguous_file(&contiguous_files[start_block],num_records);
                     printf("Contiguous file '%s' created successfully.\n", file_name);
                     break;
                 }
@@ -292,7 +338,7 @@ int i;
         return;
     }
 
-    initialize_chained_file(&chained_files[new_file.first_block]);
+    initialize_chained_file(&chained_files[new_file.first_block],num_records);
     printf("Chained file '%s' created successfully.\n", file_name);
      FILE *f = fopen(file_name, "w");
 
@@ -302,7 +348,7 @@ int i;
         
     }
            
-           createMetaData(f, file_name, 0, allocated_blocks,i);
+           createMetaData(f, file_name, 0, allocated_blocks,new_file.first_block);
             fclose(f);
 }
 
@@ -392,6 +438,7 @@ int sequential_search(ContiguousFile *file, int id, int *index)
 }
 int binary_search(ContiguousFile *file, int id, int *index)
 {
+	 
     int left = 0, right = file->current_size - 1;
     while (left <= right)
     {
@@ -399,6 +446,7 @@ int binary_search(ContiguousFile *file, int id, int *index)
         if (file->records[mid].id == id && file->records[mid].is_deleted == 0)
         {
             *index = mid;
+            
             return 1;
         }
         if (file->records[mid].id < id)
@@ -436,17 +484,49 @@ Node *search_chained(ChainedFile *file, int id)
     }
     return NULL;
 }
+
+
 /////////////////////////////// record management  ///////////////////////////////////////////////
 
 //**************************** inserting a record ************************************//
-int add_record_chained(ChainedFile *file, int id, int is_sorted)
+int add_record_chained(ChainedFile *file, int id, int is_sorted,const char *filename,MetaData meta)
 {
+    
     Node *new_node = (Node *)malloc(sizeof(Node));
+    if(file->current_size >= file->max_size){
+    	printf("Error: Insufficient space in the contiguous file.\n");
+        return 0;
+	}
     if (!new_node)
     {
         printf("Error: Insufficient memory.\n");
         return 0;
     }
+    Node *current = file->head;
+        while (current != NULL)
+        {
+        	if(current->record.id == id){
+        		printf("ID already exist");
+        		return 0;
+			}
+               
+            current = current->next;
+        }
+    
+    
+FILE *f1 = fopen(filename, "r+b");
+
+    // Check if the file was created/opened successfully
+    if (f1 == NULL) {
+        printf("Error opening the file.\n");
+        return 1;
+    }
+            readMetaData(f1,&meta);
+         
+           meta.fileSize = meta.fileSize + (1* RECORD_SIZE);
+          
+            updateMetaData(f1, &meta);
+              fclose(f1);
 
     new_node->record.id = id;
     new_node->record.is_deleted = 0;
@@ -481,17 +561,41 @@ int add_record_chained(ChainedFile *file, int id, int is_sorted)
 
     // Increment the record count for the block
     int block_index = file - chained_files;
+    file->current_size++;
     virtual_disk[block_index].record_count++;
     return 1;
 }
-int add_record_contiguous(ContiguousFile *file, int id, int is_sorted)
+int add_record_contiguous(ContiguousFile *file, int id, int is_sorted,const char *filename,MetaData meta)
 {
-    if (file->current_size >= MAX_SIZE)
+
+    if (file->current_size >= file->max_size )
     {
         printf("Error: Insufficient space in the contiguous file.\n");
         return 0;
     }
+    int i;
+      for ( i = 0; i < file->current_size; i++)
+        {
+            if( file->records[i].id == id){
+            	printf("id already exist");
+            	return 0;
+			}
+           
+            
+        }
+ FILE *f1 = fopen(filename, "r+b");
 
+    // Check if the file was created/opened successfully
+    if (f1 == NULL) {
+        printf("Error opening the file.\n");
+        return 1;
+    }
+            readMetaData(f1,&meta);
+         
+           meta.fileSize = meta.fileSize + (1* RECORD_SIZE);
+          
+            updateMetaData(f1, &meta);
+              fclose(f1);
     int block_index = file - contiguous_files; // Find the block index
     int records_per_block = BLOCK_SIZE / RECORD_SIZE;
 
@@ -530,38 +634,14 @@ int insert_record(const char *filename, int id,MetaData meta)
         {
             if (files[i].type == 0)
             {
-                add_record_contiguous(&contiguous_files[files[i].first_block], id, files[i].is_sorted);
-                 FILE *f1 = fopen(filename, "r+b");
-
-    // Check if the file was created/opened successfully
-    if (f1 == NULL) {
-        printf("Error opening the file.\n");
-        return 1;
-    }
-            readMetaData(f1,&meta);
-         
-           meta.fileSize = meta.fileSize + (1* RECORD_SIZE);
-          
-            updateMetaData(f1, &meta);
-              fclose(f1);
+                add_record_contiguous(&contiguous_files[files[i].first_block], id, files[i].is_sorted,filename,meta);
+                
                 return 1;
             }
             else if (files[i].type == 1)
             {
-                add_record_chained(&chained_files[files[i].first_block], id, files[i].is_sorted);
-                 FILE *f1 = fopen(filename, "r+b");
-
-    // Check if the file was created/opened successfully
-    if (f1 == NULL) {
-        printf("Error opening the file.\n");
-        return 1;
-    }
-            readMetaData(f1,&meta);
-         
-           meta.fileSize = meta.fileSize + (1* RECORD_SIZE);
-          
-            updateMetaData(f1, &meta);
-              fclose(f1);
+                add_record_chained(&chained_files[files[i].first_block], id, files[i].is_sorted,filename,meta);
+                 
                 return 1;
             }
            
@@ -766,17 +846,17 @@ void display_records(const char *filename) {
     }
     printf("Error: File '%s' not found.\n", filename);
 }
-void display_allocation_table()
-{
+void display_allocation_table(){
 	system("cls");
 
     printf("\n\n--- Memory Visualization ---\n\n");
-    printf("Legend: " GREEN "[Green = Free]" RESET ", " RED "[Red = Occupied]" RESET "\n\n");
+  
 int i;
     for ( i = 0; i < NUM_BLOCKS; i++)
     {
         if (!virtual_disk[i].is_occupied)
         {
+        
             printf( GREEN "[%02d: Free]" RESET " ", i);
         }
         else
@@ -796,7 +876,21 @@ int i;
 
             if (file_name)
             {
+                  int record_count = virtual_disk[i].record_count;
+                
+			
+				if(record_count <= MAX_SIZE){
+				
                 printf(RED "[%02d: %s, %dR]" RESET " ", i, file_name, virtual_disk[i].record_count);
+       }else{
+	   
+                 while (record_count > MAX_SIZE && i + 1 < NUM_BLOCKS) {
+                    // Insert records into next block
+                     printf(RED "[%02d: %s, %dR]" RESET " ", i, file_name, MAX_SIZE);
+                    record_count -= MAX_SIZE;
+                    i++; // Move to the next block
+                    printf(RED "[%02d: %s, %dR]" RESET " ", i, file_name, record_count);
+                }}
             }
             else
             {
@@ -882,8 +976,8 @@ void menu()
         case 1:
         	system("cls");
             printf("Enter file name: ");
-            scanf("%s", file_name);
-		int i;
+            scanf("%10s", file_name);
+            	int i;
          		int a = 0;
              for ( i = 0; i < MAX_FILES; i++){
              	if(strcmp(file_name,files[i].name) == 0){
@@ -891,6 +985,7 @@ void menu()
 				 }
 			 }
 			 if(a == 0){
+			 
            while (1) {  // Infinite loop to keep asking for valid input
         printf("Enter number of records: ");
         
@@ -929,14 +1024,13 @@ void menu()
         }
     }
             int num_blocks = (num_records * RECORD_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE;
-            printf("%d",num_blocks);
             create_file(file_name, num_blocks, file_type, is_sorted,num_records);
             if (file_type == 0)
             {
                 contiguous_files[find_free_block()].is_sorted = is_sorted;
             }
-	            back();}
-		else {
+            back();}
+            else {
             	printf("this file already exist");
             	back();
 			}
@@ -1052,7 +1146,7 @@ case 8:
             
         case 10:
         	system("cls");
-        	 printf("10. Display the metadata file \n");
+        
         	  printf("Enter file name: ");
     			scanf("%s", file_name);
     			FILE *file = fopen(file_name, "r");
@@ -1060,13 +1154,14 @@ case 8:
     // Check if the file was created/opened successfully
     if (file == NULL) {
         printf("Error opening the file.\n");
-        return ;
-    }
+        back();
+    }else{
+	
         readMetaData(file,&meta);
          fclose(file);
         displayMetaData(&meta);
         
-            back();
+            back();}
 		break;
 		case 11:
 		system("cls");
@@ -1079,6 +1174,7 @@ case 8:
         	
             printf("Exiting program .......\n");
             return;
+           
         default:
             printf("Invalid choice. Please try again.\n");
             back();
