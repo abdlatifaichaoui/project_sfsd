@@ -3,9 +3,9 @@
 #include <math.h>
 #include <stdlib.h>
 #define NUM_BLOCKS 100  // Total num of blocks
-#define BLOCK_SIZE 128 // block size 
+#define BLOCK_SIZE 256 // block size 
 #define MAX_FILES 10
-#define MAX_SIZE 2
+#define MAX_SIZE 4
 #define RED "\033[0;31m"
 #define RESET "\033[0m"
 #define GREEN "\033[0;32m"
@@ -653,7 +653,7 @@ int add_record_contiguous(ContiguousFile *file, int id, int is_sorted,const char
     // Update the record count in the appropriate block
     int current_block = block_index + (file->current_size / records_per_block);
     virtual_disk[current_block].record_count++;
-
+ file->records[file->i].is_deleted = 0;
     file->current_size++;
     file->i++;
  
@@ -697,6 +697,7 @@ void logical_delete_contiguous(ContiguousFile *file, int id)
     int records_per_block = BLOCK_SIZE / RECORD_SIZE;
      int current_block = block_index + (file->current_size / records_per_block);
     virtual_disk[current_block].record_count--;
+    
     }
     else
     {
@@ -832,7 +833,6 @@ void display_contiguous_file(const ContiguousFile *file)
     {
         printf("Sorted: %s\n", file->sorted ? "Yes" : "No");
         int i;
-        printf("%d",file->current_size);
         for ( i = 0; i < file->i; i++)
         {
             printf("Record %d: ID=%d", i + 1, file->records[i].id);
@@ -914,20 +914,20 @@ int i;
 
             if (file_name)
             {
-                  int record_count = virtual_disk[i].record_count;
+                  int r_count = virtual_disk[i].record_count;
                 
 			
-				if(record_count <= MAX_SIZE){
+				if(r_count  <= MAX_SIZE){
 				
                 printf(RED "[%02d: %s, %dR]" RESET " ", i, file_name, virtual_disk[i].record_count);
        }else{
 	   
-                 while (record_count > MAX_SIZE && i + 1 < NUM_BLOCKS) {
+                 while (r_count > MAX_SIZE && i + 1 < NUM_BLOCKS) {
                     // Insert records into next block
                      printf(RED "[%02d: %s, %dR]" RESET " ", i, file_name, MAX_SIZE);
-                    record_count -= MAX_SIZE;
+                    r_count -= MAX_SIZE;
                     i++; // Move to the next block
-                    printf(RED "[%02d: %s, %dR]" RESET " ", i, file_name, record_count);
+                    printf(RED "[%02d: %s, %dR]" RESET " ", i, file_name, r_count);
                 }}
             }
             else
@@ -1004,11 +1004,11 @@ void menu()
                 // Clear the remaining input characters
                 while (getchar() != '\n');  // Clear the input buffer
                 printf("Invalid input. Please enter a number between 1 and 12.\n");
-            } else if (choice < 1 || choice > 13) {
+            } else if (choice < 1 || choice > 12) {
                 printf("Invalid choice. Please enter a number between 1 and 12.\n");
             }
         }
-    } while (choice < 1 || choice > 13);
+    } while (choice < 1 || choice > 12);
 
         switch (choice)
         {
